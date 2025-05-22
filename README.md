@@ -116,6 +116,8 @@ Assigns labels to chats
 
 ```
 messenger-webapp/
+├── docs/                      # Documentation
+│   ├── database_schema.md     # Database schema details
 ├── public/                    # Static assets
 ├── src/
 │   ├── app/                   # Next.js App Router
