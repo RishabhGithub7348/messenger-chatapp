@@ -2,7 +2,7 @@
 
 A real-time chat application built with Next.js, TypeScript, Tailwind CSS, and Supabase, featuring a modern WhatsApp-inspired UI.
 
-![Messenger WebApp Screenshot](https://example.com/screenshot.png)
+![Messenger ChatApp Screenshot](https://example.com/screenshot.png)
 
 ## Features
 
@@ -12,7 +12,7 @@ A real-time chat application built with Next.js, TypeScript, Tailwind CSS, and S
 - Protected routes with authentication guards
 
 ### Chat Interface
-- Messenger WebApp-style UI with sidebar navigation and chat list
+- Messenger ChatApp-style UI with sidebar navigation and chat list
 - One-on-one and group chat support
 - Real-time message updates
 - Message read status tracking
@@ -115,7 +115,7 @@ Assigns labels to chats
 ## File Structure
 
 ```
-messenger-webapp/
+messenger-chatapp/
 ├── docs/                      # Documentation
 │   ├── database_schema.md     # Database schema details
 ├── public/                    # Static assets
@@ -164,7 +164,7 @@ messenger-webapp/
 1. Clone the repository
    ```bash
    git clone https://github.com/yourusername/whatsapp-clone.git
-   cd whatsapp-clone
+   cd messenger-chatapp
    ```
 
 2. Install dependencies
