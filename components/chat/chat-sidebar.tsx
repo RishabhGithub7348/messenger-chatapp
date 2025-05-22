@@ -580,7 +580,7 @@ export default function ChatSidebar() {
                             })}
                           </p>
                           {chat.unread_count > 0 && (
-                            <Badge variant={isActive ? "default" : "secondary"} className="h-5 px-1.5 text-xs font-semibold">
+                            <Badge  variant={isActive ? "default" : "secondary"} className="h-5 bg-green-300 px-1.5 text-xs font-semibold">
                               {chat.unread_count > 99 ? "99+" : chat.unread_count}
                             </Badge>
                           )}
@@ -592,7 +592,7 @@ export default function ChatSidebar() {
                             <Badge
                               key={label.id}
                               variant="outline"
-                              className="py-0.5 px-1.5 text-xs font-normal"
+                              className="py-0.5 bg-green-300 px-1.5 text-xs font-normal"
                               style={{
                                 borderColor: `${label.color}80`,
                                 color: label.color,
@@ -603,7 +603,7 @@ export default function ChatSidebar() {
                             </Badge>
                           ))}
                           {chat.labels.length > 3 && (
-                            <Badge variant="outline" className="py-0.5 px-1.5 text-xs font-normal">
+                            <Badge variant="outline" className="py-0.5 bg-green-300 px-1.5 text-xs font-normal">
                               +{chat.labels.length - 3}
                             </Badge>
                           )}

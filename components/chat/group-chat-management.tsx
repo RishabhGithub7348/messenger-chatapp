@@ -109,6 +109,28 @@ export default function GroupChatManager({ chatId }: { chatId: string }) {
       }));
       const { error } = await supabase.from("chat_members").insert(memberInserts);
       if (error) throw error;
+      
+      // Optimistically update the UI by moving selected users from availableUsers to members
+      const newMembers = [...members];
+      const newAvailableUsers = [...availableUsers];
+      
+      selectedUserIdsToAdd.forEach(profileId => {
+        const userIndex = newAvailableUsers.findIndex(u => u.id === profileId);
+        if (userIndex !== -1) {
+          const user = newAvailableUsers[userIndex];
+          // Create a new member with a temporary ID (will be updated on next fetch)
+          const newMember: ChatMember = {
+            id: `temp-${Date.now()}-${profileId}`,
+            profile: user,
+            is_admin: false
+          };
+          newMembers.push(newMember);
+          newAvailableUsers.splice(userIndex, 1);
+        }
+      });
+      
+      setMembers(newMembers);
+      setAvailableUsers(newAvailableUsers);
       setSelectedUserIdsToAdd([]);
     } catch (error) {
       console.error("Error adding members:", error);
@@ -123,6 +145,17 @@ export default function GroupChatManager({ chatId }: { chatId: string }) {
     try {
       const { error } = await supabase.from("chat_members").delete().eq("id", memberToManage.id);
       if (error) throw error;
+      
+      // Optimistically update the UI immediately
+      const removedMember = members.find(m => m.id === memberToManage.id);
+      if (removedMember) {
+        // Remove from members list
+        setMembers(prevMembers => prevMembers.filter(m => m.id !== memberToManage.id));
+        
+        // Add back to available users list
+        setAvailableUsers(prevUsers => [...prevUsers, removedMember.profile]);
+      }
+      
       setMemberToManage(null);
     } catch (error) {
       console.error("Error removing member:", error);
@@ -137,6 +170,15 @@ export default function GroupChatManager({ chatId }: { chatId: string }) {
     try {
       const { error } = await supabase.from("chat_members").update({ is_admin: !currentStatus }).eq("id", memberId);
       if (error) throw error;
+      
+      // Optimistically update the UI immediately
+      setMembers(prevMembers => 
+        prevMembers.map(member => 
+          member.id === memberId 
+            ? { ...member, is_admin: !currentStatus } 
+            : member
+        )
+      );
     } catch (error) {
       console.error("Error updating admin status:", error);
     } finally {
@@ -315,7 +357,7 @@ export default function GroupChatManager({ chatId }: { chatId: string }) {
                         size="sm"
                       >
                         {actionLoading["addMembers"] ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UserPlus className="mr-2 h-4 w-4" />}
-                        Add Selected ({selectedUserIdsToAdd.length})
+                        Add Selected Members ({selectedUserIdsToAdd.length})
                       </Button>
                     </>
                   )}

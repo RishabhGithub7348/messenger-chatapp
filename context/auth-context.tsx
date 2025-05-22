@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { useRouter } from "next/navigation";
 import { Database } from "../types/supabase";
@@ -36,7 +36,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const supabase = createClient();
 
-  const refreshSession = useCallback(async () => {
+  // Optimized to fetch profile in the background without blocking
+  const fetchUserProfile = async (userId: string) => {
+    try {
+      const { data: profileData, error: profileError } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", userId)
+        .single();
+
+      if (profileError) {
+        console.error("Error fetching profile:", profileError);
+      } else {
+        setProfile(profileData);
+      }
+    } catch (error) {
+      console.error("Error in profile fetch:", error);
+    }
+  };
+
+  const refreshSession = async () => {
     try {
       setIsLoading(true);
       const {
@@ -46,15 +65,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (currentSession?.user) {
         setUser(currentSession.user);
-
-        // Fetch user profile
-        const { data: profileData, error: profileError } = await supabase.from("profiles").select("*").eq("id", currentSession.user.id).single();
-
-        if (profileError) {
-          console.error("Error fetching profile:", profileError);
-        } else {
-          setProfile(profileData);
-        }
+        
+        // Fetch profile in the background without awaiting
+        fetchUserProfile(currentSession.user.id);
       } else {
         setUser(null);
         setProfile(null);
@@ -64,7 +77,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  },[supabase]);
+  };
 
   const signOut = async () => {
     await supabase.auth.signOut();
@@ -72,7 +85,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setProfile(null);
     setSession(null);
     router.push("/auth/login");
-    router.refresh();
   };
 
   useEffect(() => {
@@ -85,28 +97,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(session?.user || null);
 
       if (session?.user) {
-        // Fetch user profile when auth state changes
-        supabase
-          .from("profiles")
-          .select("*")
-          .eq("id", session.user.id)
-          .single()
-          .then(({ data, error }) => {
-            if (error) {
-              console.error("Error fetching profile:", error);
-            } else {
-              setProfile(data);
-            }
-          });
+        // Fetch profile in the background without blocking navigation
+        fetchUserProfile(session.user.id);
       }
-
-      router.refresh();
+      
+      // Removed router.refresh() to prevent navigation delays
     });
 
     return () => {
       subscription.unsubscribe();
     };
-  }, [supabase, router, refreshSession]);
+  }, [supabase, router]);
 
   return <AuthContext.Provider value={{ user, profile, session, isLoading, signOut, refreshSession }}>{children}</AuthContext.Provider>;
 }
