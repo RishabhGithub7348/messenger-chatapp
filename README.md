@@ -1,8 +1,17 @@
-# Messenger WebApp
+# Real-time Chat Messenger WebApp
 
-A real-time chat application built with Next.js, TypeScript, Tailwind CSS, and Supabase, featuring a modern WhatsApp-inspired UI.
+A real-time chat application built with Next.js, TypeScript, Tailwind CSS, and Supabase, featuring a modern messaging-inspired UI.
 
-![Messenger ChatApp Screenshot](https://example.com/screenshot.png)
+## Documentary Video
+
+To learn more about Todo App and see a walkthrough of its features, watch documentary video:
+
+### Watch the Chat Messenger App Documentary Video
+
+[![alt text](https://github.com/user-attachments/assets/e01e09d3-7e32-49ad-93d0-6f8212dfa810)](https://youtu.be/q2V0-j9j-mU)
+
+## Deployed on Vercel :  [Chat Messenger](https://realtime-chatapp-nu.vercel.app/)
+
 
 ## Features
 
@@ -163,7 +172,7 @@ messenger-chatapp/
 ### Local Development
 1. Clone the repository
    ```bash
-   git clone https://github.com/yourusername/whatsapp-clone.git
+   git clone <repo link>
    cd messenger-chatapp
    ```
 
@@ -232,13 +241,7 @@ messenger-chatapp/
 - **Presence Management**: Accurately tracking online/offline status
 - **Mobile Responsiveness**: Ensuring good UX across device sizes
 
-## Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
 
 ## Acknowledgements
 
@@ -246,3 +249,8 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 - [Supabase](https://supabase.io/)
 - [Tailwind CSS](https://tailwindcss.com/)
 - [TypeScript](https://www.typescriptlang.org/)
+
+## Contact
+
+For questions or support, reach out to [Rishabh Maurya](mailto:rishabhmaurya7654@gmail.com).
+
