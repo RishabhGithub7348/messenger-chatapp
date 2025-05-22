@@ -22,7 +22,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <meta property="og:description" content="A modern chat application to connect with friends, family, and groups." />
         <meta property="og:type" content="website" />
       </head>
-      <body className="min-h-screen bg-[#f0f2f5]">
+      <body className="min-h-screen bg-[#f0f2f5] hide-scrollbar ">
         <AuthProvider>
           <FilterProvider>
             <AuthGuard>{children}</AuthGuard>
