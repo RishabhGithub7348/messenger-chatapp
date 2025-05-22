@@ -121,7 +121,7 @@ export default function ChatLabelManager({ chatId }: { chatId: string }) {
           <div className="flex items-center space-x-1">
             <Tooltip>
               <TooltipTrigger asChild>
-                <Link href="/labels" passHref>
+                <Link href="/settings" passHref>
                   <Button variant="ghost" size="icon" className="h-7 w-7 rounded-full hover:bg-primary/10 hover:text-primary">
                     <Settings className="h-4 w-4 text-muted-foreground" />
                     <span className="sr-only">Manage Labels</span>
