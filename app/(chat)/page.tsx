@@ -9,7 +9,7 @@ export default function ChatPage() {
             </svg>
           </div>
         </div>
-        <h2 className="text-2xl font-bold text-gray-900">Welcome to WhatsApp Clone</h2>
+        <h2 className="text-2xl font-bold text-gray-900">Welcome to Chat Messenger</h2>
         <p className="mt-2 text-gray-600">Select a chat or start a new conversation</p>
       </div>
     </div>
