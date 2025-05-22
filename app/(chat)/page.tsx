@@ -1,7 +1,4 @@
-
 export default function ChatPage() {
-
-
   return (
     <div className="flex h-full flex-col items-center justify-center bg-gray-50">
       <div className="text-center">
@@ -16,5 +13,5 @@ export default function ChatPage() {
         <p className="mt-2 text-gray-600">Select a chat or start a new conversation</p>
       </div>
     </div>
-  )
+  );
 }

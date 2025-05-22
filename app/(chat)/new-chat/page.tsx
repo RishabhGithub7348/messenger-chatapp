@@ -1,274 +1,255 @@
-'use client'
+"use client";
 
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import { useAuth } from '@/context/auth-context'
-import { createClient } from '@/lib/supabase/client'
-import { Database } from '@/types/supabase'
-import { ArrowLeft, Search, Users, Check, X, Loader2 } from 'lucide-react'
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/context/auth-context";
+import { createClient } from "@/lib/supabase/client";
+import { Database } from "@/types/supabase";
+import { ArrowLeft, Search, Users, UserPlus, X, Check, Loader2 } from "lucide-react";
 
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
-import { Badge } from "@/components/ui/badge"
-import { Label } from "@/components/ui/label"
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
-type Profile = Database['public']['Tables']['profiles']['Row']
+type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
 export default function NewChatPage() {
-  const [users, setUsers] = useState<Profile[]>([])
-  const [selectedUsers, setSelectedUsers] = useState<Profile[]>([])
-  const [isGroup, setIsGroup] = useState(false)
-  const [groupName, setGroupName] = useState('')
-  const [searchTerm, setSearchTerm] = useState('')
-  const [loading, setLoading] = useState(true)
-  const [creating, setCreating] = useState(false)
-  const { user } = useAuth()
-  const supabase = createClient()
-  const router = useRouter()
+  const [users, setUsers] = useState<Profile[]>([]);
+  const [selectedUsers, setSelectedUsers] = useState<Profile[]>([]);
+  const [isGroup, setIsGroup] = useState(false);
+  const [groupName, setGroupName] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [creating, setCreating] = useState(false);
+  const { user } = useAuth();
+  const supabase = createClient();
+  const router = useRouter();
 
   // Fetch all users except the current user
   useEffect(() => {
-    if (!user) return
+    if (!user) return;
 
     const fetchUsers = async () => {
-      setLoading(true)
+      setLoading(true);
       try {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('*')
-          .neq('id', user.id)
-          .order('username')
+        const { data, error } = await supabase.from("profiles").select("*").neq("id", user.id).order("username");
 
         if (error) {
-          console.error('Error fetching users:', error)
-          return
+          console.error("Error fetching users:", error);
+          return;
         }
 
-        setUsers(data || [])
+        setUsers(data || []);
       } catch (error) {
-        console.error('Error in user fetching:', error)
+        console.error("Error in user fetching:", error);
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
-    }
+    };
 
-    fetchUsers()
-  }, [user, supabase])
+    fetchUsers();
+  }, [user, supabase]);
 
   // Filter users based on search term
-  const filteredUsers = users.filter(u =>
-    u.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (u.display_name && u.display_name.toLowerCase().includes(searchTerm.toLowerCase()))
-  )
+  const filteredUsers = users.filter((u) => u.username?.toLowerCase().includes(searchTerm.toLowerCase()) || (u.display_name && u.display_name.toLowerCase().includes(searchTerm.toLowerCase())));
 
-  // Toggle user selection
+  // Toggle user selection with restriction for one-to-one chats
   const toggleUserSelection = (profile: Profile) => {
-    if (isGroup) {
-      // Group mode: Allow multiple selections
-      if (selectedUsers.some(u => u.id === profile.id)) {
-        setSelectedUsers(selectedUsers.filter(u => u.id !== profile.id))
-      } else {
-        setSelectedUsers([...selectedUsers, profile])
-      }
+    if (selectedUsers.some((u) => u.id === profile.id)) {
+      // Always allow deselection
+      setSelectedUsers(selectedUsers.filter((u) => u.id !== profile.id));
     } else {
-      // Non-group mode: Allow only one selection
-      if (selectedUsers.some(u => u.id === profile.id)) {
-        setSelectedUsers([])
+      // For one-to-one chats, replace the selection instead of adding
+      if (!isGroup) {
+        setSelectedUsers([profile]);
       } else {
-        setSelectedUsers([profile]) // Replace with the new selection
+        // For group chats, add to the selection
+        setSelectedUsers([...selectedUsers, profile]);
       }
     }
-  }
+  };
 
   // Create a new chat
   const createChat = async () => {
-    if (!user || selectedUsers.length === 0 || (isGroup && !groupName.trim())) return
+    if (!user || selectedUsers.length === 0 || (isGroup && !groupName.trim())) return;
 
-    setCreating(true)
+    setCreating(true);
 
     try {
       // Check if one-on-one chat already exists
       if (!isGroup && selectedUsers.length === 1) {
-        const { data: existingChats, error: chatError } = await supabase
-          .from('chats')
-          .select('id')
-          .eq('is_group', false)
-          .filter('id', 'in', `
-            (SELECT chat_id FROM chat_members WHERE profile_id = '${user.id}')
-            INTERSECT
-            (SELECT chat_id FROM chat_members WHERE profile_id = '${selectedUsers[0].id}')
-          `)
-          .filter('id', 'in', `
-            (SELECT chat_id FROM chat_members GROUP BY chat_id HAVING COUNT(*) = 2)
-          `)
+        const { data: existingChats, error: chatError } = await supabase.from("chats").select("id, chat_members!inner(*)").eq("is_group", false).eq("chat_members.profile_id", user.id);
 
         if (chatError) {
-          console.error('Error checking existing chats:', chatError)
-          return
+          console.error("Error checking existing chats:", chatError);
+          return;
         }
 
-        if (existingChats?.length > 0) {
-          router.push(`/chat/${existingChats[0].id}`)
-          return
+        // Find a chat where the selected user is also a member
+        const existingChat = existingChats?.find((chat) =>
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          chat.chat_members.some((member: any) => member.profile_id === selectedUsers[0].id)
+        );
+
+        if (existingChat) {
+          router.push(`/chat/${existingChat.id}`);
+          return;
         }
       }
 
       // Create a new chat
       const { data: chatData, error: chatError } = await supabase
-        .from('chats')
+        .from("chats")
         .insert({
           name: isGroup ? groupName : null,
           is_group: isGroup,
-          created_by: user.id
+          created_by: user.id,
         })
         .select()
-        .single()
+        .single();
 
       if (chatError || !chatData) {
-        console.error('Error creating chat:', chatError)
-        return
+        console.error("Error creating chat:", chatError);
+        return;
       }
 
       // Add current user as a member and admin
-      const { error: memberError } = await supabase
-        .from('chat_members')
-        .insert({
-          chat_id: chatData.id,
-          profile_id: user.id,
-          is_admin: true
-        })
+      const { error: memberError } = await supabase.from("chat_members").insert({
+        chat_id: chatData.id,
+        profile_id: user.id,
+        is_admin: true,
+      });
 
       if (memberError) {
-        console.error('Error adding current user to chat:', memberError)
-        return
+        console.error("Error adding current user to chat:", memberError);
+        return;
       }
 
       // Add selected users as members
-      const memberInserts = selectedUsers.map(selectedUser => ({
+      const memberInserts = selectedUsers.map((selectedUser) => ({
         chat_id: chatData.id,
         profile_id: selectedUser.id,
-        is_admin: isGroup ? false : true // In one-on-one chats, both users are admins
-      }))
+        is_admin: isGroup ? false : true, // In one-on-one chats, both users are admins
+      }));
 
-      const { error: membersError } = await supabase
-        .from('chat_members')
-        .insert(memberInserts)
+      const { error: membersError } = await supabase.from("chat_members").insert(memberInserts);
 
       if (membersError) {
-        console.error('Error adding members to chat:', membersError)
-        return
+        console.error("Error adding members to chat:", membersError);
+        return;
       }
 
       // Navigate to the new chat
-      router.push(`/chat/${chatData.id}`)
+      router.push(`/chat/${chatData.id}`);
     } catch (error) {
-      console.error('Error creating chat:', error)
+      console.error("Error creating chat:", error);
     } finally {
-      setCreating(false)
+      setCreating(false);
     }
-  }
+  };
 
   return (
-    <div className="flex h-full flex-col bg-background">
+    <div className="flex h-full flex-col bg-white">
       {/* Header */}
-      <div className="flex h-16 items-center justify-between border-b border-border px-4">
-        <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => router.back()}
-            aria-label="Go back"
-          >
-            <ArrowLeft className="h-5 w-5 text-foreground" />
+      <div className="flex h-16 items-center justify-between border-b border-gray-200 px-4 shadow-sm">
+        <div className="flex items-center">
+          <Button onClick={() => router.back()} variant="ghost" size="icon" className="mr-4 rounded-full">
+            <ArrowLeft className="h-5 w-5" />
           </Button>
-          <h1 className="text-lg font-semibold text-foreground">New Chat</h1>
+          <h1 className="text-lg font-medium">New Chat</h1>
         </div>
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <Checkbox
+
+        <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-2">
+            <Switch
               id="group-toggle"
               checked={isGroup}
-              onCheckedChange={() => setIsGroup(!isGroup)}
-              aria-label="Create group chat"
+              onCheckedChange={(checked) => {
+                setIsGroup(checked);
+                if (!checked && selectedUsers.length > 1) {
+                  // If switching to one-to-one mode and multiple users are selected,
+                  // keep only the first selected user
+                  setSelectedUsers(selectedUsers.slice(0, 1));
+                }
+              }}
             />
-            <Label htmlFor="group-toggle" className="text-sm text-muted-foreground">
-              Create group chat
+            <Label htmlFor="group-toggle" className="text-sm font-medium">
+              Group Chat
             </Label>
           </div>
-          <Button
-            onClick={createChat}
-            disabled={selectedUsers.length === 0 || (isGroup && !groupName.trim()) || creating}
-            className="bg-primary text-primary-foreground hover:bg-primary/90"
-            size="sm"
-          >
+
+          <Button onClick={createChat} disabled={selectedUsers.length === 0 || (isGroup && !groupName.trim()) || creating} className="bg-green-600 hover:bg-green-700">
             {creating ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Creating...
+              </>
             ) : (
-              <Users className="mr-2 h-4 w-4" />
+              <>
+                <UserPlus className="mr-2 h-4 w-4" />
+                Create Chat
+              </>
             )}
-            Create Chat
           </Button>
         </div>
       </div>
 
       {/* Group name input (if group chat) */}
       {isGroup && (
-        <div className="border-b border-border p-4">
-          <Label htmlFor="group-name" className="text-sm font-medium text-foreground">
+        <div className="border-b border-gray-200 p-4">
+          <Label htmlFor="group-name" className="text-sm font-medium">
             Group Name
           </Label>
-          <Input
-            id="group-name"
-            value={groupName}
-            onChange={(e) => setGroupName(e.target.value)}
-            placeholder="Enter group name"
-            className="mt-1"
-          />
+          <Input id="group-name" value={groupName} onChange={(e) => setGroupName(e.target.value)} placeholder="Enter group name" className="mt-1" />
         </div>
       )}
 
       {/* Search */}
-      <div className="border-b border-border p-4">
+      <div className="border-b border-gray-200 p-4">
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Search users"
-            className="pl-10"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Input type="text" placeholder="Search users" className="pl-10" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
         </div>
       </div>
 
       {/* Selected users */}
       {selectedUsers.length > 0 && (
-        <div className="border-b border-border p-4">
-          <h2 className="mb-2 text-sm font-medium text-foreground">
-            Selected ({selectedUsers.length})
-          </h2>
+        <div className="border-b border-gray-200 p-4">
+          <div className="flex items-center justify-between mb-2">
+            <h2 className="text-sm font-medium text-gray-700">Selected Users</h2>
+            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+              {selectedUsers.length}
+            </Badge>
+          </div>
           <div className="flex flex-wrap gap-2">
-            {selectedUsers.map(profile => (
-              <Badge
-                key={profile.id}
-                variant="secondary"
-                className="flex items-center gap-1 px-3 py-1"
-              >
+            {selectedUsers.map((profile) => (
+              <Badge key={profile.id} className="pl-2 pr-1 py-1 bg-green-50 text-green-700 border-green-200 hover:bg-green-100">
                 <span>{profile.display_name || profile.username}</span>
                 <Button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleUserSelection(profile);
+                  }}
                   variant="ghost"
                   size="icon"
-                  className="h-4 w-4"
-                  onClick={() => toggleUserSelection(profile)}
-                  aria-label={`Remove ${profile.display_name || profile.username}`}
+                  className="h-5 w-5 p-0 ml-1 rounded-full hover:bg-green-200 hover:text-green-800"
                 >
                   <X className="h-3 w-3" />
                 </Button>
               </Badge>
             ))}
           </div>
+
+          {!isGroup && selectedUsers.length > 0 && (
+            <p className="mt-2 text-xs text-gray-500">
+              <span className="font-medium">Note:</span> In one-to-one chat mode, only one user can be selected.
+            </p>
+          )}
         </div>
       )}
 
@@ -276,50 +257,54 @@ export default function NewChatPage() {
       <ScrollArea className="flex-1">
         {loading ? (
           <div className="flex h-32 items-center justify-center">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <Loader2 className="h-8 w-8 animate-spin text-green-500" />
           </div>
         ) : filteredUsers.length === 0 ? (
-          <div className="flex h-32 items-center justify-center p-4 text-center text-muted-foreground">
+          <div className="flex h-32 items-center justify-center p-4 text-center text-gray-500">
             <p>No users found</p>
           </div>
         ) : (
-          <ul className="divide-y divide-border">
-            {filteredUsers.map(profile => {
-              const isSelected = selectedUsers.some(u => u.id === profile.id)
+          <div className="divide-y divide-gray-100">
+            {filteredUsers.map((profile) => {
+              const isSelected = selectedUsers.some((u) => u.id === profile.id);
 
               return (
-                <li
-                  key={profile.id}
-                  onClick={() => toggleUserSelection(profile)}
-                  className={`cursor-pointer px-4 py-3 hover:bg-muted transition-colors ${isSelected ? 'bg-primary/10' : ''}`}
-                >
-                  <div className="flex items-center gap-3">
+                <div key={profile.id} onClick={() => toggleUserSelection(profile)} className={`cursor-pointer p-4 hover:bg-gray-50 transition-colors ${isSelected ? "bg-green-50" : ""}`}>
+                  <div className="flex items-center">
                     <Avatar className="h-10 w-10">
-                      <AvatarImage src={profile.avatar_url || undefined} alt={profile.username} />
-                      <AvatarFallback className="bg-primary/10 text-primary">
-                        {profile.username.charAt(0).toUpperCase()}
-                      </AvatarFallback>
+                      <AvatarImage src={profile.avatar_url || ""} alt={profile.username || ""} />
+                      <AvatarFallback className="bg-gray-200 text-gray-700">{(profile.username || "?").charAt(0).toUpperCase()}</AvatarFallback>
                     </Avatar>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-foreground">
-                        {profile.display_name || profile.username}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        {profile.status || '@' + profile.username}
-                      </p>
+
+                    <div className="ml-3 flex-1">
+                      <p className="text-sm font-medium text-gray-900">{profile.display_name || profile.username}</p>
+                      <p className="text-xs text-gray-500">{profile.status || "@" + profile.username}</p>
                     </div>
-                    {isSelected && (
-                      <Check className="h-4 w-4 text-primary" />
-                    )}
+
+                    <div className={`h-6 w-6 rounded-full flex items-center justify-center ${isSelected ? "bg-green-500 text-white" : "border border-gray-300"}`}>
+                      {isSelected && <Check className="h-4 w-4" />}
+                    </div>
                   </div>
-                </li>
-              )
+                </div>
+              );
             })}
-          </ul>
+          </div>
         )}
-        <ScrollBar orientation="vertical" />
-        <ScrollBar orientation="horizontal" />
       </ScrollArea>
+
+      {/* Info card at bottom */}
+      {!isGroup && (
+        <Card className="m-4 bg-blue-50 border-blue-200">
+          <div className="p-3 text-sm text-blue-700">
+            <div className="flex items-start">
+              <Users className="h-5 w-5 mr-2 flex-shrink-0" />
+              <p>
+                <span className="font-medium">One-to-one chat mode:</span> You can select only one user. Switch to group chat mode to select multiple users.
+              </p>
+            </div>
+          </div>
+        </Card>
+      )}
     </div>
-  )
+  );
 }

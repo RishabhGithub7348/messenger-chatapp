@@ -1,17 +1,17 @@
-'use client'
+"use client";
 
-import { useState, useEffect } from 'react'
-import { Database } from '../../types/supabase' // Adjust path
-import { useAuth } from '@/context/auth-context' // Adjust path
-import { createClient } from '@/lib/supabase/client' // Adjust path
-import { UserPlus, UserMinus, ShieldCheck, Shield, Loader2 } from 'lucide-react'
+import { useState, useEffect } from "react";
+import { Database } from "../../types/supabase";
+import { useAuth } from "@/context/auth-context";
+import { createClient } from "@/lib/supabase/client";
+import { UserPlus, UserMinus, ShieldCheck, Shield, Loader2 } from "lucide-react";
 
-import { Button } from "@/components/ui/button"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Label } from "@/components/ui/label"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,144 +22,134 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
-import { Badge } from '@/components/ui/badge'
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet"
+} from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 
-type Profile = Database['public']['Tables']['profiles']['Row']
+type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 type ChatMember = {
-  id: string // This is chat_members.id
-  profile: Profile
-  is_admin: boolean
-}
+  id: string; // This is chat_members.id
+  profile: Profile;
+  is_admin: boolean;
+};
 
 export default function GroupChatManager({ chatId }: { chatId: string }) {
-  const [members, setMembers] = useState<ChatMember[]>([])
-  const [availableUsers, setAvailableUsers] = useState<Profile[]>([])
-  const [selectedUserIdsToAdd, setSelectedUserIdsToAdd] = useState<string[]>([])
-  const [currentUserIsAdmin, setCurrentUserIsAdmin] = useState(false)
-  const [loading, setLoading] = useState(true)
-  const [actionLoading, setActionLoading] = useState<Record<string, boolean>>({})
-  const [memberToManage, setMemberToManage] = useState<{ id: string, name: string } | null>(null)
-  const [isSheetOpen, setIsSheetOpen] = useState(false)
+  const [members, setMembers] = useState<ChatMember[]>([]);
+  const [availableUsers, setAvailableUsers] = useState<Profile[]>([]);
+  const [selectedUserIdsToAdd, setSelectedUserIdsToAdd] = useState<string[]>([]);
+  const [currentUserIsAdmin, setCurrentUserIsAdmin] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState<Record<string, boolean>>({});
+  const [memberToManage, setMemberToManage] = useState<{ id: string; name: string } | null>(null);
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
 
-  const { user } = useAuth()
-  const supabase = createClient()
+  const { user } = useAuth();
+  const supabase = createClient();
 
   const setLoadingState = (key: string, isLoading: boolean) => {
-    setActionLoading(prev => ({ ...prev, [key]: isLoading }))
-  }
+    setActionLoading((prev) => ({ ...prev, [key]: isLoading }));
+  };
 
   useEffect(() => {
-    if (!user || !chatId) return
+    if (!user || !chatId) return;
 
     const fetchGroupData = async () => {
-      setLoading(true)
+      setLoading(true);
       try {
-        const { data: memberData, error: memberError } = await supabase
-          .from('chat_members')
-          .select('id, is_admin, profile_id, profiles!inner(*)')
-          .eq('chat_id', chatId)
-        if (memberError) throw memberError
+        const { data: memberData, error: memberError } = await supabase.from("chat_members").select("id, is_admin, profile_id, profiles!inner(*)").eq("chat_id", chatId);
+        if (memberError) throw memberError;
 
         const formattedMembers = memberData
-          .filter(m => m.profiles)
-          .map(member => ({
+          .filter((m) => m.profiles)
+          .map((member) => ({
             id: member.id,
-            profile: member.profiles as Profile,
+            profile: member.profiles as unknown as Profile,
             is_admin: member.is_admin,
-          }))
-        setMembers(formattedMembers)
+          }));
+        setMembers(formattedMembers);
 
-        const currentUserMember = memberData.find(m => m.profile_id === user.id)
-        setCurrentUserIsAdmin(currentUserMember?.is_admin || false)
+        const currentUserMember = memberData.find((m) => m.profile_id === user.id);
+        setCurrentUserIsAdmin(currentUserMember?.is_admin || false);
 
-        const memberProfileIds = memberData.map(m => m.profile_id)
+        const memberProfileIds = memberData.map((m) => m.profile_id);
         const { data: allUsersData, error: allUsersError } = await supabase
-          .from('profiles')
-          .select('*')
-          .not('id', 'in', `(${memberProfileIds.join(',')})`)
-        if (allUsersError) throw allUsersError
-        setAvailableUsers(allUsersData || [])
+          .from("profiles")
+          .select("*")
+          .not("id", "in", `(${memberProfileIds.join(",")})`);
+        if (allUsersError) throw allUsersError;
+        setAvailableUsers(allUsersData || []);
       } catch (error) {
-        console.error('Error fetching group data:', error)
+        console.error("Error fetching group data:", error);
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
-    }
-    fetchGroupData()
+    };
+    fetchGroupData();
     const channel = supabase
       .channel(`group_chat_manager_${chatId}_${user.id}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'chat_members', filter: `chat_id=eq.${chatId}` }, fetchGroupData)
-      .subscribe()
-    return () => { supabase.removeChannel(channel) }
-  }, [user, chatId, supabase])
+      .on("postgres_changes", { event: "*", schema: "public", table: "chat_members", filter: `chat_id=eq.${chatId}` }, fetchGroupData)
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, chatId, supabase]);
 
   const toggleUserSelectionForAdd = (userId: string) => {
-    setSelectedUserIdsToAdd(prev =>
-      prev.includes(userId) ? prev.filter(id => id !== userId) : [...prev, userId]
-    )
-  }
+    setSelectedUserIdsToAdd((prev) => (prev.includes(userId) ? prev.filter((id) => id !== userId) : [...prev, userId]));
+  };
 
   const handleAddMembers = async () => {
-    if (!user || !chatId || selectedUserIdsToAdd.length === 0) return
-    setLoadingState('addMembers', true)
+    if (!user || !chatId || selectedUserIdsToAdd.length === 0) return;
+    setLoadingState("addMembers", true);
     try {
-      const memberInserts = selectedUserIdsToAdd.map(profileId => ({
+      const memberInserts = selectedUserIdsToAdd.map((profileId) => ({
         chat_id: chatId,
         profile_id: profileId,
         is_admin: false,
-      }))
-      const { error } = await supabase.from('chat_members').insert(memberInserts)
-      if (error) throw error
-      setSelectedUserIdsToAdd([])
+      }));
+      const { error } = await supabase.from("chat_members").insert(memberInserts);
+      if (error) throw error;
+      setSelectedUserIdsToAdd([]);
     } catch (error) {
-      console.error('Error adding members:', error)
+      console.error("Error adding members:", error);
     } finally {
-      setLoadingState('addMembers', false)
+      setLoadingState("addMembers", false);
     }
-  }
+  };
 
   const handleRemoveMember = async () => {
-    if (!user || !chatId || !memberToManage) return
-    setLoadingState(`remove_${memberToManage.id}`, true)
+    if (!user || !chatId || !memberToManage) return;
+    setLoadingState(`remove_${memberToManage.id}`, true);
     try {
-      const { error } = await supabase.from('chat_members').delete().eq('id', memberToManage.id)
-      if (error) throw error
-      setMemberToManage(null)
+      const { error } = await supabase.from("chat_members").delete().eq("id", memberToManage.id);
+      if (error) throw error;
+      setMemberToManage(null);
     } catch (error) {
-      console.error('Error removing member:', error)
+      console.error("Error removing member:", error);
     } finally {
-      setLoadingState(`remove_${memberToManage.id}`, false)
+      setLoadingState(`remove_${memberToManage.id}`, false);
     }
-  }
+  };
 
   const handleToggleAdminStatus = async (memberId: string, currentStatus: boolean) => {
-    if (!user || !chatId) return
-    setLoadingState(`admin_${memberId}`, true)
+    if (!user || !chatId) return;
+    setLoadingState(`admin_${memberId}`, true);
     try {
-      const { error } = await supabase.from('chat_members').update({ is_admin: !currentStatus }).eq('id', memberId)
-      if (error) throw error
+      const { error } = await supabase.from("chat_members").update({ is_admin: !currentStatus }).eq("id", memberId);
+      if (error) throw error;
     } catch (error) {
-      console.error('Error updating admin status:', error)
+      console.error("Error updating admin status:", error);
     } finally {
-      setLoadingState(`admin_${memberId}`, false)
+      setLoadingState(`admin_${memberId}`, false);
     }
-  }
+  };
 
   if (loading) {
     return (
       <div className="flex h-40 items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
-    )
+    );
   }
 
   return (
@@ -186,24 +176,23 @@ export default function GroupChatManager({ chatId }: { chatId: string }) {
                     <p className="p-4 text-sm text-center text-muted-foreground">No members in this group.</p>
                   ) : (
                     <ul className="divide-y divide-border">
-                      {members.map(member => (
+                      {members.map((member) => (
                         <li key={member.id} className="flex items-center justify-between p-3 hover:bg-muted transition-colors">
                           <div className="flex items-center gap-3">
                             <Avatar className="h-10 w-10">
                               <AvatarImage src={member.profile.avatar_url || undefined} alt={member.profile.username} />
-                              <AvatarFallback className="bg-primary/10 text-primary">
-                                {member.profile.username?.charAt(0).toUpperCase() || 'U'}
-                              </AvatarFallback>
+                              <AvatarFallback className="bg-primary/10 text-primary">{member.profile.username?.charAt(0).toUpperCase() || "U"}</AvatarFallback>
                             </Avatar>
                             <div className="flex flex-col">
                               <p className="text-sm font-medium text-foreground">
                                 {member.profile.display_name || member.profile.username}
-                                {member.profile.id === user?.id && (
-                                  <span className="text-muted-foreground text-xs ml-1">(You)</span>
-                                )}
+                                {member.profile.id === user?.id && <span className="text-muted-foreground text-xs ml-1">(You)</span>}
                               </p>
                               {member.is_admin && (
-                                <Badge variant="outline" className="text-xs px-2 py-0.5 mt-1 border-green-500 text-green-600 bg-green-50 dark:bg-green-900/50 dark:border-green-400 dark:text-green-300">
+                                <Badge
+                                  variant="outline"
+                                  className="text-xs px-2 py-0.5 mt-1 border-green-500 text-green-600 bg-green-50 dark:bg-green-900/50 dark:border-green-400 dark:text-green-300"
+                                >
                                   Admin
                                 </Badge>
                               )}
@@ -265,9 +254,7 @@ export default function GroupChatManager({ chatId }: { chatId: string }) {
                                       disabled={actionLoading[`remove_${memberToManage?.id}`]}
                                       className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                                     >
-                                      {actionLoading[`remove_${memberToManage?.id}`] && (
-                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                      )}
+                                      {actionLoading[`remove_${memberToManage?.id}`] && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                       Remove
                                     </AlertDialogAction>
                                   </AlertDialogFooter>
@@ -289,14 +276,12 @@ export default function GroupChatManager({ chatId }: { chatId: string }) {
                 <div>
                   <h3 className="text-lg font-semibold text-foreground mb-2">Add Members</h3>
                   {availableUsers.length === 0 ? (
-                    <p className="p-4 text-sm text-center text-muted-foreground bg-muted/50 rounded-md">
-                      All users are already in this group.
-                    </p>
+                    <p className="p-4 text-sm text-center text-muted-foreground bg-muted/50 rounded-md">All users are already in this group.</p>
                   ) : (
                     <>
                       <ScrollArea className="h-48 border border-border rounded-md mb-3">
                         <ul className="divide-y divide-border">
-                          {availableUsers.map(profile => (
+                          {availableUsers.map((profile) => (
                             <li
                               key={profile.id}
                               className="flex items-center justify-between p-3 hover:bg-muted transition-colors cursor-pointer"
@@ -311,14 +296,9 @@ export default function GroupChatManager({ chatId }: { chatId: string }) {
                                 />
                                 <Avatar className="h-10 w-10">
                                   <AvatarImage src={profile.avatar_url || undefined} alt={profile.username} />
-                                  <AvatarFallback className="bg-primary/10 text-primary">
-                                    {profile.username?.charAt(0).toUpperCase() || 'U'}
-                                  </AvatarFallback>
+                                  <AvatarFallback className="bg-primary/10 text-primary">{profile.username?.charAt(0).toUpperCase() || "U"}</AvatarFallback>
                                 </Avatar>
-                                <Label
-                                  htmlFor={`add-user-${profile.id}`}
-                                  className="text-sm font-normal text-foreground cursor-pointer"
-                                >
+                                <Label htmlFor={`add-user-${profile.id}`} className="text-sm font-normal text-foreground cursor-pointer">
                                   {profile.display_name || profile.username}
                                 </Label>
                               </div>
@@ -330,15 +310,11 @@ export default function GroupChatManager({ chatId }: { chatId: string }) {
                       </ScrollArea>
                       <Button
                         onClick={handleAddMembers}
-                        disabled={selectedUserIdsToAdd.length === 0 || actionLoading['addMembers']}
+                        disabled={selectedUserIdsToAdd.length === 0 || actionLoading["addMembers"]}
                         className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
                         size="sm"
                       >
-                        {actionLoading['addMembers'] ? (
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        ) : (
-                          <UserPlus className="mr-2 h-4 w-4" />
-                        )}
+                        {actionLoading["addMembers"] ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UserPlus className="mr-2 h-4 w-4" />}
                         Add Selected ({selectedUserIdsToAdd.length})
                       </Button>
                     </>
@@ -350,5 +326,5 @@ export default function GroupChatManager({ chatId }: { chatId: string }) {
         </SheetContent>
       </Sheet>
     </TooltipProvider>
-  )
+  );
 }
