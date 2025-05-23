@@ -62,6 +62,11 @@ To learn more about Todo App and see a walkthrough of its features, watch docume
 
 ## Database Schema
 
+### Supabase Schema Visualizer
+
+![supabase-schema-eojyvdbezoxsbykekjga (1)](https://github.com/user-attachments/assets/8541f90e-e58c-4c4b-a799-27397ac80d10)
+
+
 The application uses the following Supabase tables:
 
 ### `profiles`
@@ -70,7 +75,9 @@ Stores user profile information
 - `username` (text): Unique username
 - `display_name` (text): Display name
 - `avatar_url` (text): URL to profile image
+- `status` (text): Status of profile
 - `created_at` (timestamp): Account creation time
+- `updated_at` (timestamp): Last update time
 
 ### `chats`
 Stores chat conversations
@@ -96,7 +103,10 @@ Stores chat messages
 - `content` (text): Message content
 - `attachment_url` (text): URL to attachment
 - `attachment_type` (text): Type of attachment
+- `is_read` (bool): Type of attachment
 - `created_at` (timestamp): Message creation time
+- - `updated_at` (timestamp): Last update time
+
 
 ### `message_reads`
 Tracks message read status
