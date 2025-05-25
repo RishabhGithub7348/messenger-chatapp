@@ -4,7 +4,7 @@ A real-time chat application built with Next.js, TypeScript, Tailwind CSS, and S
 
 ## Documentary Video
 
-To learn more about Todo App and see a walkthrough of its features, watch documentary video:
+To learn more about Real-time Chat Messenger WebApp App and see a walkthrough of its features, watch documentary video:
 
 ### Watch the Chat Messenger App Documentary Video
 
